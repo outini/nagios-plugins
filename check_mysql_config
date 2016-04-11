@@ -1,0 +1,65 @@
+#! /usr/bin/env python2.7
+
+#
+# check_mysql_config: MySQL configuration nagios probe using percona-tools
+#
+# Copyright (C) 2015 Denis Pompilio (jawa) <denis.pompilio@gmail.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <http://www.gnu.org/licenses/>.
+
+import os
+import ConfigParser
+
+
+# XXX: Need improvement for portability
+PTDIFF = '/home/nbs/mysql/pt-config-diff'
+ONDISK_CFG = '/tmp/my.cnf'
+LIVE_CFG = 'h= --defaults-file=/etc/mysql/debian.cnf'
+
+
+def get_mysql_configs():
+    """Get MySQL standard configuration files
+
+    :return: :func:`list` of mysql configuration filenames
+    """
+    # XXX: Need improvement for portability
+    cfgs = ["/etc/mysql/my.cnf"]
+    for cfg in os.listdir('/etc/mysql/conf.d'):
+        if cfg.endswith('.cnf'):
+            cfgs.append('/etc/mysql/conf.d/%s' % (cfg,))
+    return cfgs
+
+
+if __name__ == "__main__":
+    # Parse mysql configuration files and aggregate them for pt-config-diff
+    # pt-config-diff does not handle well configuration includes
+    rcp = ConfigParser.RawConfigParser(allow_no_value=True)
+    rcp.read(get_mysql_configs())
+    rcp.write(open(ONDISK_CFG, 'w'))
+
+    run = os.popen3('%s %s %s' % (PTDIFF, ONDISK_CFG, LIVE_CFG))
+    out = run[1].read()
+    err = run[2].read()
+
+    # Handle nagios probe exits
+    if len(err):
+        print('[CRITICAL] %s' % (err.strip(),))
+        exit(2)
+
+    if len(out):
+        print('[CRITICAL] %s' % (out.strip(),))
+        exit(2)
+
+    print('[OK] live configuration saved on disk')
+    exit(0)
