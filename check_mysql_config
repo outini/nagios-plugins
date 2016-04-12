@@ -24,9 +24,9 @@ import ConfigParser
 
 
 # XXX: Need improvement for portability
-PTDIFF = '/home/nbs/mysql/pt-config-diff'
+PTDIFF = '/usr/bin/env pt-config-diff'
 ONDISK_CFG = '/tmp/my.cnf'
-LIVE_CFG = 'h= --defaults-file=/etc/mysql/root.cnf'
+LIVE_CFG = 'h= --defaults-file=/etc/mysql/debian.cnf'
 
 
 def usage():
@@ -114,13 +114,18 @@ if __name__ == "__main__":
 
     # Parse mysql configuration files and aggregate them for pt-config-diff
     # pt-config-diff does not handle well configuration includes
-    rcp = ConfigParser.RawConfigParser(allow_no_value=True)
-    rcp.read(get_mysql_configs())
-    rcp.write(open(ONDISK_CFG, 'w'))
+    try:
+        rcp = ConfigParser.RawConfigParser(allow_no_value=True)
+        rcp.read(get_mysql_configs())
+        rcp.write(open(ONDISK_CFG, 'w'))
 
-    run = os.popen3('%s %s %s' % (PTDIFF, ONDISK_CFG, LIVE_CFG))
-    out = run[1].read().strip()
-    err = run[2].read().strip()
+        run = os.popen3('%s %s %s' % (PTDIFF, ONDISK_CFG, LIVE_CFG))
+        out = run[1].read().strip()
+        err = run[2].read().strip()
+    except Exception as exc:
+        out = ""
+        err = "unable to aggregate on-disk configuration (%s)" % (exc,)
+
 
     if action == '-p':
         # Handle nagios probe exits
