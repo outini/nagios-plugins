@@ -24,9 +24,9 @@ import ConfigParser
 
 
 # XXX: Need improvement for portability
-PTDIFF = '/usr/bin/env pt-config-diff'
+PTDIFF = '/home/nbs/mysql/pt-config-diff'
 ONDISK_CFG = '/tmp/my.cnf'
-LIVE_CFG = 'h= --defaults-file=/etc/mysql/debian.cnf'
+LIVE_CFG = 'h= --defaults-file=/etc/mysql/root.cnf'
 
 
 def usage():
@@ -52,7 +52,7 @@ def get_mysql_configs():
     """
     # XXX: Need improvement for portability
     cfgs = ["/etc/mysql/my.cnf"]
-    for cfg in os.listdir('/etc/mysql/conf.d'):
+    for cfg in sorted(os.listdir('/etc/mysql/conf.d')):
         if cfg.endswith('.cnf'):
             cfgs.append('/etc/mysql/conf.d/%s' % (cfg,))
     return cfgs
